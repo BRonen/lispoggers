@@ -104,32 +104,24 @@ A simple statically typed Lisp in Lean.
 
 ![Virtual Machine Diagram](https://mermaid.ink/img/pako:eNqVjs0OgjAQhF9ls2d4AQ4eFE_-JhIPUg6bsvwEaUltg4Tw7rYavXvbmfl2MjNKXTImWN31KBsyFrJUKIB9ftHOSAZ6wHqyHLAC4ngFh3nH3Xg9LAH7iXd0zDceg-2TpbOtVkVATnk2DQybhmXXqvqvwvPnNzPMvivkGGHPpqe29KPn4Ai0DfcsMPFnSaYTKNTiOXJWXyYlMbHGcYRGu7rBpKL7wys3lGQ5bak21P_cgdRN669eXs3wYGs?type=png)
 
-<p style="display: none;">
+<!--
 ```
 flowchart TD
-  A[Raw Source Code] --> B[CST]
-  B --> C[AST]
-  C --> D[Macro Expansion]
-  D --> E[Source Compiled to KekwVM Bytecode]
-  C --> G[Type Checking Compiled to KekwVM Bytecode]
+  A[Raw Source Code] -- > B[CST]
+  B -- > C[AST]
+  C -- > D[Macro Expansion]
+  D -- > E[Source Compiled to KekwVM Bytecode]
+  C -- > G[Type Checking Compiled to KekwVM Bytecode]
   C -.- J[Types Checking Interpreter]
-  J --> K[Type Checking Evaluation]
-  K --> I[Source Type Tree]```
+  J -- > K[Type Checking Evaluation]
+  K -- > I[Source Type Tree]
+```
 ```
 flowchart TD
-  L[Source as Bytecode] --> M{KekwVM}
-  M{KekwVM} --> N[Code Execution]
-  O[Type Checking as Bytecode] --> M{KekwVM}
-  M{KekwVM} --> P[Type Tree]
+  L[Source as Bytecode] -- > M{KekwVM}
+  M{KekwVM} -- > N[Code Execution]
+  O[Type Checking as Bytecode] -- > M{KekwVM}
+  M{KekwVM} -- > P[Type Tree]
 ```
-</p>
 
-# Compiler
-
-The compiler receives the abstract syntax tree and compiles into a C source code.
-
-# Type checker
-
-The type checker receives the abstract syntax tree and can both compile it into a C source code to be checked ahead of time or evaluate the tree itself on the fly to check the types of the expressions.
-
-Both the compiler and the type checker are supposed to give the same result.
+</p-->
