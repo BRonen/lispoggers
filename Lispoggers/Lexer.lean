@@ -8,10 +8,14 @@ def isAlpha (c : Char) : Bool :=
   (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 
 structure Location where
-  line : Nat
-  column : Nat
-  size : Nat
-  deriving Repr
+  line       : Nat
+  column     : Nat
+  size       : Nat
+  identifier : String
+  deriving DecidableEq, Repr, Nonempty
+
+instance : ToString Location where
+  toString loc := s!"[identifier := {loc.identifier}]"
 
 inductive Token
   | lparen     : Location → Token
@@ -39,7 +43,7 @@ structure LexerState where
   deriving Repr
 
 def makeLocation (state : LexerState) (size := 1) : Location :=
-  { line := state.line, column := state.column - size, size := size }
+  { line := state.line, column := state.column - size, size := size, identifier := String.mk state.acc }
 
 def flushIdentifier (state : LexerState) : List Token :=
   if state.acc.isEmpty then
@@ -83,6 +87,6 @@ def lexer (input : String) : List Token :=
 
 #eval lexer "
 (add
- one
-  two
+ (one
+  two)
    three)"

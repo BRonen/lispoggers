@@ -1,2 +1,6 @@
 /.lake
 /.direnv
+
+# Added by cargo
+
+/target
