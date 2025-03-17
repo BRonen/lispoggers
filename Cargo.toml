@@ -1,0 +1,10 @@
+[package]
+name = "lispoggers"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "kekw"
+path = "Kekw/main.rs"
+
+[dependencies]
