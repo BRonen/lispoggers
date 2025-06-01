@@ -104,23 +104,23 @@ Every structure can be represented by a data type, and every datatype is represe
 
 ```mermaid
 flowchart TD
-  A[Raw Source Code] -- > B[CST]
-  B -- > C[AST]
-  C -- > D[Macro Expansion]
-  D -- > E[Source Compiled to KekwVM Bytecode]
-  C -- > G[Type Checking Compiled to KekwVM Bytecode]
+  A[Raw Source Code] --> B[CST]
+  B --> C[AST]
+  C --> D[Macro Expansion]
+  D --> E[Source Compiled to KekwVM Bytecode]
+  C --> G[Type Checking Compiled to KekwVM Bytecode]
   C -.- J[Types Checking Interpreter]
-  J -- > K[Type Checking Evaluation]
-  K -- > I[Source Type Tree]
+  J --> K[Type Checking Evaluation]
+  K --> I[Source Type Tree]
 ```
 
 # Virtual Machine
 
 ```mermaid
 flowchart TD
-  L[Source as Bytecode] -- > M{KekwVM}
-  M{KekwVM} -- > N[Code Execution]
-  O[Type Checking as Bytecode] -- > M{KekwVM}
-  M{KekwVM} -- > P[Type Tree]
+  L[Source as Bytecode] --> M{KekwVM}
+  M{KekwVM} --> N[Code Execution]
+  O[Type Checking as Bytecode] --> M{KekwVM}
+  M{KekwVM} --> P[Type Tree]
 ```
 
