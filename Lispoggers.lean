@@ -1,6 +1,8 @@
 import Lispoggers.Lexer
 import Lispoggers.Parser
+import Lispoggers.Typer
 
-import Kekwvm
+def main :=
+  IO.println "hello world!"
 
-#eval hello
+#eval main
