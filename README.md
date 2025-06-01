@@ -1,6 +1,7 @@
-# Lispoggers
+# LISPoggers
 
-A simple statically typed Lisp in Lean.
+A statically typed poggers Lisp in Lean.
+LISPoggers is an acronym for "Lisp Is Simply Poggers".
 
 ## Features
 
@@ -12,18 +13,19 @@ A simple statically typed Lisp in Lean.
 - [ ] Functions
 - [ ] Macros
 
-# Data types
+# Algebraic Data types
+
+Every structure can be represented by a data type, and every datatype is represented by a name, a map of dependencies identifiers its types.
 
 ```ts
-(data <name>
-  (<constructor> <type>)
-  (<constructor> <type>))
+(data <name> <dependencies>
+  (<constructor> <type>*)*)
 ```
 
 ## Booleans
 
 ```ts
-(data Bool ()
+(data Bool {}
   (false)
   (true))
 ```
@@ -39,7 +41,9 @@ A simple statically typed Lisp in Lean.
 ## Maps
 
 ```ts
-(data Map {k Type, v Type}
+(data Map
+  {k Type
+   v Type}
   (empty (Map k v))
   (cons k v (Map k v)))
 ```
@@ -63,7 +67,7 @@ A simple statically typed Lisp in Lean.
 # Functions
 
 ```ts
-(def <name> <type>
+(lambda <name> <type>
   <expr>)
 ```
 
@@ -86,7 +90,7 @@ A simple statically typed Lisp in Lean.
 (<name> <expr>)
 ```
 
-# Complete grammar
+# Complete BNF grammar
 
 ```ts
 <expr> ::= <identifier> | <list> | <map>
@@ -98,30 +102,25 @@ A simple statically typed Lisp in Lean.
 
 # Compiler
 
-![Compiler Diagram](https://mermaid.ink/img/pako:eNqNkE1ugzAQha8y8jr0ACwqhR9VCcqmoC5ishiZCSDARsYORVHuXmOVtOqqG8tv5ps3T3NnQlXEQnbt1Swa1AaKpJQAe_6OM-TKakEQO-YCQfAKEY_z4rICkdcx33_r2OuEn1BoBenniHJqlfS9xPdS_rQbxranCoyCjLr54wTRYmhN8svqjRfL6OCGRNfK-j9TLwEc_dT0M3aQhvSoyb0eO3rz7I95esPeotkCZx46bIE9W2haF61ttmMD6QHbyl3uvlZKZhoaqGSh-1aou5KV8uE4tEblixQsNNrSjmll64aFV-wnp-xYoaGkxVrj8Ky6052V2vTjC31UiWA?type=png)
+```mermaid
+flowchart TD
+  A[Raw Source Code] --> B[CST]
+  B --> C[AST]
+  C --> D[Macro Expansion]
+  D --> E[Source Compiled to KekwVM Bytecode]
+  C --> G[Type Checking Compiled to KekwVM Bytecode]
+  C -.- J[Types Checking Interpreter]
+  J --> K[Type Checking Evaluation]
+  K --> I[Source Type Tree]
+```
 
 # Virtual Machine
 
-![Virtual Machine Diagram](https://mermaid.ink/img/pako:eNqVjs0OgjAQhF9ls2d4AQ4eFE_-JhIPUg6bsvwEaUltg4Tw7rYavXvbmfl2MjNKXTImWN31KBsyFrJUKIB9ftHOSAZ6wHqyHLAC4ngFh3nH3Xg9LAH7iXd0zDceg-2TpbOtVkVATnk2DQybhmXXqvqvwvPnNzPMvivkGGHPpqe29KPn4Ai0DfcsMPFnSaYTKNTiOXJWXyYlMbHGcYRGu7rBpKL7wys3lGQ5bak21P_cgdRN669eXs3wYGs?type=png)
-
-<!--
-```
+```mermaid
 flowchart TD
-  A[Raw Source Code] -- > B[CST]
-  B -- > C[AST]
-  C -- > D[Macro Expansion]
-  D -- > E[Source Compiled to KekwVM Bytecode]
-  C -- > G[Type Checking Compiled to KekwVM Bytecode]
-  C -.- J[Types Checking Interpreter]
-  J -- > K[Type Checking Evaluation]
-  K -- > I[Source Type Tree]
-```
-```
-flowchart TD
-  L[Source as Bytecode] -- > M{KekwVM}
-  M{KekwVM} -- > N[Code Execution]
-  O[Type Checking as Bytecode] -- > M{KekwVM}
-  M{KekwVM} -- > P[Type Tree]
+  L[Source as Bytecode] --> M{KekwVM}
+  M{KekwVM} --> N[Code Execution]
+  O[Type Checking as Bytecode] --> M{KekwVM}
+  M{KekwVM} --> P[Type Tree]
 ```
 
-</p-->

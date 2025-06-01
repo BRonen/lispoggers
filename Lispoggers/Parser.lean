@@ -2,6 +2,7 @@ import Batteries
 import Lispoggers.Lexer
 
 inductive CST where
+  | string     : Location → String → CST
   | identifier : Location → String → CST
   | list       : Location → List CST → CST
   | map        : Location → List CST → CST
@@ -55,6 +56,7 @@ def concreteParse (tokens : List Token) : CST :=
 #eval concreteParse (lexer "(a (b c) {d e})")
 
 inductive AST where
+  | string     : Location → String → AST
   | list       : Location → List AST → AST
   | map        : Location → List AST → AST
   | lambda     : Location → AST → AST → AST → AST → AST
@@ -77,6 +79,7 @@ mutual
     AST.map loc (parseElements elements)
 
   def parseNode : CST → AST
+    | CST.string loc s => AST.string loc s
     | CST.identifier loc str => AST.identifier loc str
     | CST.list loc elements => parseList loc elements
     | CST.map loc elements => parseMap loc elements
@@ -91,14 +94,18 @@ def abstractParse : CST → AST := parseNode
 #eval abstractParse (concreteParse (lexer "(f x y)"))
 
 inductive SyntaxTree where
-  | list       : Location → List SyntaxTree → SyntaxTree
-  | map        : Location → List SyntaxTree → SyntaxTree
-  | lambda     : Location → SyntaxTree → SyntaxTree → SyntaxTree → SyntaxTree
-  | identifier : Location → Nat → SyntaxTree
-  | error      : Location → String → SyntaxTree
+  | string : Location → String → SyntaxTree
+  | list   : Location → List SyntaxTree → SyntaxTree
+  | map    : Location → List SyntaxTree → SyntaxTree
+  | lambda : Location → SyntaxTree → SyntaxTree → SyntaxTree → SyntaxTree
+  | bind   : Location → Nat → SyntaxTree
+  | error  : Location → String → SyntaxTree
   deriving Repr, Nonempty
 
-partial def parse (ctx : Batteries.RBMap String Nat compare) (acc : Nat) : AST → SyntaxTree
+open Batteries
+
+partial def parse (ctx : RBMap String Nat compare) (acc : Nat) : AST → SyntaxTree
+  | AST.string loc s => SyntaxTree.string loc s
   | AST.list loc elements => SyntaxTree.list loc (elements.map $ parse ctx acc)
   | AST.map loc elements => SyntaxTree.map loc (elements.map $ parse ctx acc)
   | AST.lambda loc name t r b =>
@@ -113,16 +120,48 @@ partial def parse (ctx : Batteries.RBMap String Nat compare) (acc : Nat) : AST �
     | _ => SyntaxTree.error loc "wasdwasd"
   | AST.identifier loc name =>
     match ctx.find? name with
-    | some i => SyntaxTree.identifier loc i
+    | some i => SyntaxTree.bind loc i
     | none => SyntaxTree.error loc "Identifier not defined"
   | AST.error loc err => SyntaxTree.error loc err
 
-def dctx : Batteries.RBMap String Nat compare := Batteries.RBMap.empty.insert "Type" 0
+private def defaultContext : RBMap String Nat compare := (((RBMap.empty).insert "Type" 0).insert "a" 1).insert "b" 2
 
-#eval "(lambda Bool Type Type (lambda x Bool Bool x))" |> lexer |> concreteParse |> abstractParse |> parse dctx 0
-#eval "{a b c d}" |> lexer |> concreteParse |> abstractParse |> parse Batteries.RBMap.empty 0
-#eval "{a b c}" |> lexer |> concreteParse |> abstractParse |> parse Batteries.RBMap.empty 0
-#eval "(a b c d)" |> lexer |> concreteParse |> abstractParse |> parse Batteries.RBMap.empty 0
-#eval "(a b c)" |> lexer |> concreteParse |> abstractParse |> parse Batteries.RBMap.empty 0
-#eval "((lambda x Type Type (x x)) (lambda x Type Type (x x)))" |> lexer |> concreteParse |> abstractParse |> parse dctx 0
-
+#eval "{a b a a}" |>
+      lexer |>
+      concreteParse |>
+      abstractParse |>
+      parse defaultContext 0
+#eval "{a b b}" |> lexer
+      |> concreteParse
+      |> abstractParse
+      |> parse defaultContext 0
+#eval "(a b b a)" |>
+      lexer |>
+      concreteParse |>
+      abstractParse |>
+      parse defaultContext 0
+#eval "(a a b b)" |>
+      lexer |>
+      concreteParse |>
+      abstractParse |>
+      parse defaultContext 0
+#eval "((lambda x Type Type (x x)) (lambda x Type Type (x x)))" |>
+      lexer |>
+      concreteParse |>
+      abstractParse |>
+      parse defaultContext 0
+#eval "(lambda a Type Type (lambda b Type Type (lambda c Type Type (a b c))))" |>
+      lexer |>
+      concreteParse |>
+      abstractParse |>
+      parse defaultContext 0
+#eval "(lambda Bool Type Type (lambda x Bool Bool x))" |>
+      lexer |>
+      concreteParse |>
+      abstractParse |>
+      parse defaultContext 0
+#eval "(lambda x Type Type x)" |>
+      lexer |>
+      concreteParse |>
+      abstractParse |>
+      parse defaultContext 0
