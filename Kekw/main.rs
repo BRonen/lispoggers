@@ -3,7 +3,8 @@ use std::collections::{HashMap, VecDeque};
 
 #[derive(Clone)]
 enum Instruction {
-  Push(i32),
+  PushInt(i32),
+  PushStr(String),
   Label(String),
   Jump(String),
   Debug,
@@ -19,7 +20,8 @@ impl Display for Instruction {
     use Instruction::*;
 
     let instruction = match self {
-      Push(v) => format!("Push({})", v),
+      PushInt(v) => format!("PushInt({})", v),
+      PushStr(v) => format!("PushStr({})", v),
       Label(label) => format!("Label({})", label),
       Jump(label) => format!("Jump({})", label),
       Debug => String::from("Debug"),
@@ -34,10 +36,29 @@ impl Display for Instruction {
   }
 }
 
+#[derive(Debug)]
+enum Value {
+  Int(i32),
+  Str(String),
+}
+
+impl Display for Value {
+  fn fmt(&self, f: &mut Formatter) -> Result {
+    use Value::*;
+
+    let value = match self {
+      Int(v) => format!("Int({})", v),
+      Str(v) => format!("Str({})", v),
+    };
+
+    f.write_str(&value)
+  }
+}
+
 struct VM {
   instructions: VecDeque<Instruction>,
   labels: HashMap<String, usize>,
-  stack: Vec<i32>,
+  stack: Vec<Value>,
   lt: bool,
   eq: bool,
   pc: usize,
@@ -55,8 +76,14 @@ impl VM {
     }
   }
 
-  pub fn push(&mut self, v: i32) -> &mut Self {
-    self.stack.push(v);
+  pub fn push_int(&mut self, v: i32) -> &mut Self {
+    self.stack.push(Value::Int(v));
+
+    self
+  }
+
+  pub fn push_str(&mut self, v: String) -> &mut Self {
+    self.stack.push(Value::Str(v));
 
     self
   }
@@ -95,7 +122,7 @@ impl VM {
     let s = self.stack.pop();
 
     match (f, s) {
-      (Some(f), Some(s)) => self.stack.push(f + s),
+      (Some(Value::Int(f)), Some(Value::Int(s))) => self.stack.push(Value::Int(f + s)),
       _ => todo!(),
     };
 
@@ -103,17 +130,19 @@ impl VM {
   }
 
   pub fn cmp(&mut self) -> &mut Self {
-    let b = self.stack.pop().unwrap();
-    let a = self.stack.pop().unwrap();
+    let b_value = self.stack.pop().unwrap();
+    let a_value = self.stack.pop().unwrap();
 
-    let lt = a < b;
-    let eq = a == b;
+    if let (Value::Int(a), Value::Int(b)) = (a_value, b_value) {
+      let lt = a < b;
+      let eq = a == b;
 
-    self.lt = lt;
-    self.eq = eq;
+      self.lt = lt;
+      self.eq = eq;
 
-    self.stack.push(a);
-    self.stack.push(b);
+      self.stack.push(Value::Int(a));
+      self.stack.push(Value::Int(b));
+    }
 
     self
   }
@@ -139,7 +168,8 @@ impl VM {
 
     match self.instructions.get(self.pc - 1) {
       None => self,
-      Some(Instruction::Push(v)) => self.push(*v),
+      Some(Instruction::PushInt(v)) => self.push_int(*v),
+      Some(Instruction::PushStr(v)) => self.push_str(v.to_string()),
       Some(Instruction::Label(label)) => self.label(label.to_string()),
       Some(Instruction::Jump(label)) => self.jump(label.to_string()),
       Some(Instruction::Debug) => self.debug(),
@@ -154,12 +184,12 @@ impl VM {
 
 fn main() {
   let program = VecDeque::from([
-      Instruction::Push(3),
+      Instruction::PushInt(3),
       Instruction::Label("teste".to_string()),
-      Instruction::Push(2),
+      Instruction::PushInt(2),
       Instruction::Add,
       Instruction::Debug,
-      Instruction::Push(10),
+      Instruction::PushInt(10),
       Instruction::Cmp,
       Instruction::Pop,
       Instruction::LtF,
