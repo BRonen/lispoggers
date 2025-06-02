@@ -1,4 +1,3 @@
-import Batteries
 import Lispoggers.Lexer
 
 inductive CST where
@@ -59,7 +58,10 @@ inductive AST where
   | string     : Location → String → AST
   | list       : Location → List AST → AST
   | map        : Location → List AST → AST
-  | lambda     : Location → AST → AST → AST → AST → AST
+  | apply      : Location → (callee : AST) → (arg : List AST) → AST
+  | lambda     : Location → (param : AST) → (paramType : AST) → (returnType : AST) → (body : AST) → AST
+  | macro      : Location → (param : AST) → (paramType : AST) → (returnType : AST) → (body : AST) → AST
+  | data       : Location → (deps : AST) → (constructors : List AST) → AST
   | identifier : Location → String → AST
   | error      : Location → String → AST
   deriving Repr
@@ -71,9 +73,15 @@ mutual
 
   def parseList (loc : Location) : List CST → AST
     | [] => AST.list loc []
+    | CST.identifier _ "list" :: elements =>
+      AST.list loc (parseElements elements)
+    | CST.identifier _ "data" :: deps :: constructors =>
+      AST.data loc (parseNode deps) (parseElements constructors)
+    | CST.identifier _ "macro" :: param :: paramType :: returnType :: body :: [] =>
+      AST.macro loc (parseNode param) (parseNode paramType) (parseNode returnType) (parseNode body)
     | CST.identifier _ "lambda" :: param :: paramType :: returnType :: body :: [] =>
       AST.lambda loc (parseNode param) (parseNode paramType) (parseNode returnType) (parseNode body)
-    | elements => AST.list loc (parseElements elements)
+    | callee :: params => AST.apply loc (parseNode callee) (parseElements params)
 
   def parseMap (loc : Location) (elements : List CST) : AST :=
     AST.map loc (parseElements elements)
@@ -94,74 +102,104 @@ def abstractParse : CST → AST := parseNode
 #eval abstractParse (concreteParse (lexer "(f x y)"))
 
 inductive SyntaxTree where
-  | string : Location → String → SyntaxTree
-  | list   : Location → List SyntaxTree → SyntaxTree
-  | map    : Location → List SyntaxTree → SyntaxTree
-  | lambda : Location → SyntaxTree → SyntaxTree → SyntaxTree → SyntaxTree
-  | bind   : Location → Nat → SyntaxTree
-  | error  : Location → String → SyntaxTree
+  | string     : Location → String → SyntaxTree
+  | list       : Location → List SyntaxTree → SyntaxTree
+  | map        : Location → List SyntaxTree → SyntaxTree
+  | lambda     : Location → (paramT : SyntaxTree) → (returnT : SyntaxTree) → (body : SyntaxTree) → SyntaxTree
+  | macro      : Location → (paramT : SyntaxTree) → (returnT : SyntaxTree) → (body : SyntaxTree) → SyntaxTree
+  | data       : Location → (deps : SyntaxTree) → (constructors : List SyntaxTree) → SyntaxTree
+  | apply      : Location → (callee : SyntaxTree) → (args : List SyntaxTree) → SyntaxTree
+  | definition : Location → (label : SyntaxTree) → (value : SyntaxTree) → SyntaxTree
+  | varBound   : Location → (index : Nat) → SyntaxTree
+  | varFree    : Location → (label : String) → SyntaxTree
+  | error      : Location → String → SyntaxTree
   deriving Repr, Nonempty
 
-open Batteries
+mutual
+  def parseLists (ctx : List String) : List AST → List SyntaxTree
+    | [] => []
+    | x :: xs => parse ctx x :: parseLists ctx xs
 
-partial def parse (ctx : RBMap String Nat compare) (acc : Nat) : AST → SyntaxTree
-  | AST.string loc s => SyntaxTree.string loc s
-  | AST.list loc elements => SyntaxTree.list loc (elements.map $ parse ctx acc)
-  | AST.map loc elements => SyntaxTree.map loc (elements.map $ parse ctx acc)
-  | AST.lambda loc name t r b =>
-    let acc := acc + 1
-    let t := parse ctx acc t
-    let r := parse ctx acc r
-    match name with
-    | AST.identifier loc name => 
-      let ctx := ctx.insert name acc
-      let b := parse ctx acc b
-      SyntaxTree.lambda loc t r b
-    | _ => SyntaxTree.error loc "wasdwasd"
-  | AST.identifier loc name =>
-    match ctx.find? name with
-    | some i => SyntaxTree.bind loc i
-    | none => SyntaxTree.error loc "Identifier not defined"
-  | AST.error loc err => SyntaxTree.error loc err
+  def parse (ctx : List String) : AST → SyntaxTree
+    | AST.string loc s => SyntaxTree.string loc s
+    | AST.list loc elements => SyntaxTree.list loc (parseLists ctx elements)
+    | AST.map loc elements => SyntaxTree.map loc (parseLists ctx elements)
+    | AST.lambda loc param paramT returnT body =>
+      match param with
+      | AST.identifier loc param =>
+        let paramT := parse ctx paramT
+        let ctx := ctx.cons param
+        let returnT := parse ctx returnT
+        let body := parse ctx body
+        SyntaxTree.lambda loc paramT returnT body
+      | _ => SyntaxTree.error loc "Using anything other than an identifier as parameter label is not supported"
+    | AST.macro loc param paramT returnT body =>
+      match param with
+      | AST.identifier loc param =>
+        let paramT := parse ctx paramT
+        let ctx := ctx.cons param
+        let returnT := parse ctx returnT
+        let body := parse ctx body
+        SyntaxTree.macro loc paramT returnT body
+      | _ => SyntaxTree.error loc "Using anything other than an identifier as parameter label is not supported"
+    | AST.data loc deps constructors =>
+      SyntaxTree.data loc (parse ctx deps) (parseLists ctx constructors)
+    | AST.identifier loc name =>
+      match ctx.indexOf? name with
+      | some i => SyntaxTree.varBound loc i
+      | none => SyntaxTree.varFree loc name
+    | AST.apply loc callee params => SyntaxTree.apply loc (parse ctx callee) (parseLists ctx params)
+    | AST.error loc err => SyntaxTree.error loc err
+end
 
-private def defaultContext : RBMap String Nat compare := (((RBMap.empty).insert "Type" 0).insert "a" 1).insert "b" 2
+private def defaultContext : List String := ["a", "b"]
 
 #eval "{a b a a}" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext 0
+      parse defaultContext
 #eval "{a b b}" |> lexer
       |> concreteParse
       |> abstractParse
-      |> parse defaultContext 0
+      |> parse defaultContext
 #eval "(a b b a)" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext 0
-#eval "(a a b b)" |>
+      parse defaultContext
+#eval "(list a a b b)" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext 0
+      parse defaultContext
+#eval "(data {a Type} (list true) (list false))" |>
+      lexer |>
+      concreteParse |>
+      abstractParse |>
+      parse defaultContext
 #eval "((lambda x Type Type (x x)) (lambda x Type Type (x x)))" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext 0
+      parse defaultContext
 #eval "(lambda a Type Type (lambda b Type Type (lambda c Type Type (a b c))))" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext 0
+      parse defaultContext
 #eval "(lambda Bool Type Type (lambda x Bool Bool x))" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext 0
+      parse defaultContext
 #eval "(lambda x Type Type x)" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext 0
+      parse defaultContext
+#eval "(macro y Type Type (macro x y y x))" |>
+      lexer |>
+      concreteParse |>
+      abstractParse |>
+      parse defaultContext
