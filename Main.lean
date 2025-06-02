@@ -1,5 +1,4 @@
 import Lispoggers
-import Lispoggers.Typer
 
 def hello := "world"
 
