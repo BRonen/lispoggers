@@ -1,9 +1,9 @@
-# LISPoggers
+* LISPoggers
 
 A statically typed poggers Lisp in Lean.
 LISPoggers is an acronym for "Lisp Is Simply Poggers".
 
-## Features
+** Features
 
 - [ ] Data types
   - [ ] Type constructors
@@ -13,96 +13,96 @@ LISPoggers is an acronym for "Lisp Is Simply Poggers".
 - [ ] Functions
 - [ ] Macros
 
-# Algebraic Data types
+** Algebraic Data types
 
 Every structure can be represented by a data type, and every datatype is represented by a name, a map of dependencies identifiers its types.
 
-```ts
+#+BEGIN_SRC clojure
 (data <name> <dependencies>
   (<constructor> <type>*)*)
-```
+#+END_SRC
 
-## Booleans
+*** Booleans
 
-```ts
+#+BEGIN_SRC clojure
 (data Bool {}
   (false)
   (true))
-```
+#+END_SRC
 
-## Lists
+*** Lists
 
-```ts
+#+BEGIN_SRC clojure
 (data List {a Type}
   (nil)
   (cons a (List a)))
-```
+#+END_SRC
 
-## Maps
+*** Maps
 
-```ts
+#+BEGIN_SRC clojure
 (data Map
   {k Type
    v Type}
   (empty (Map k v))
   (cons k v (Map k v)))
-```
+#+END_SRC
 
-# Pattern matching
+** Pattern matching
 
-```ts
+#+BEGIN_SRC clojure
 (match <expr>
   (<pattern> <expr>)
   (<pattern> <expr>))
-```
+#+END_SRC
 
-## Matching over booleans
+*** Matching over booleans
 
-```ts
+#+BEGIN_SRC clojure
 (match <expr>
   (false <expr>)
   (true <expr>))
-```
+#+END_SRC
 
-# Functions
+** Functions
 
-```ts
+#+BEGIN_SRC clojure
 (lambda <name> <type>
   <expr>)
-```
+#+END_SRC
 
-## Function application
+*** Function application
 
-```ts
+#+BEGIN_SRC clojure
 (<name> <expr>)
-```
+#+END_SRC
 
-# Macros
+** Macros
 
-```ts
+#+BEGIN_SRC clojure
 (macro <name> <type>
   <expr>)
-```
+#+END_SRC
 
-## Macro application
+*** Macro application
 
-```ts
+#+BEGIN_SRC clojure
 (<name> <expr>)
-```
+#+END_SRC
 
-# Complete BNF grammar
+** Complete BNF grammar
 
-```ts
+#+BEGIN_SRC ebnf
 <expr> ::= <identifier> | <list> | <map>
 <list> ::= "(" <divider> <expr> (<divider> <expr>)* <divider> ")"
 <map> ::= "{" <divider> <expr> (<divider> <expr>)* <divider>"}"
 <identifier> ::= ([a-z] | [A-Z])+
 <divider> ::= (" " | "\n")*
-```
+#+END_SRC
 
-# Compiler
+** Compiler
 
-```mermaid
+#+BEGIN_SRC mermaid
 flowchart TD
   A[Raw Source Code] --> B[CST]
   B --> C[AST]
@@ -112,15 +112,16 @@ flowchart TD
   C -.- J[Types Checking Interpreter]
   J --> K[Type Checking Evaluation]
   K --> I[Source Type Tree]
-```
+#+END_SRC
 
-# Virtual Machine
 
-```mermaid
+** Virtual Machine
+
+#+BEGIN_SRC mermaid
 flowchart TD
   L[Source as Bytecode] --> M{KekwVM}
   M{KekwVM} --> N[Code Execution]
   O[Type Checking as Bytecode] --> M{KekwVM}
   M{KekwVM} --> P[Type Tree]
-```
+#+END_SRC
 
