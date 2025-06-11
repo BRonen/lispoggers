@@ -1,0 +1,102 @@
+
+#+name: structure-location
+#+BEGIN_SRC lean4
+
+structure Location where
+  line       : Nat
+  column     : Nat
+  size       : Nat
+  identifier : String
+  deriving DecidableEq, Repr, Nonempty
+
+#+END_SRC
+
+#+name: inductive-syntaxtree
+#+BEGIN_SRC lean4
+
+<<structure-location>>
+
+inductive SyntaxTree where
+  | string     : Location → String → SyntaxTree
+  | list       : Location → List SyntaxTree → SyntaxTree
+  | map        : Location → List SyntaxTree → SyntaxTree
+  | lambda     : Location → (paramT : SyntaxTree) → (returnT : SyntaxTree) → (body : SyntaxTree) → SyntaxTree
+  | macro      : Location → (paramT : SyntaxTree) → (returnT : SyntaxTree) → (body : SyntaxTree) → SyntaxTree
+  | data       : Location → (deps : SyntaxTree) → (constructors : List SyntaxTree) → SyntaxTree
+  | apply      : Location → (callee : SyntaxTree) → (args : List SyntaxTree) → SyntaxTree
+  | definition : Location → (label : SyntaxTree) → (value : SyntaxTree) → SyntaxTree
+  | varBound   : Location → (index : Nat) → SyntaxTree
+  | varFree    : Location → (label : String) → SyntaxTree
+  | error      : Location → String → SyntaxTree
+  deriving Repr, Nonempty
+
+#+END_SRC
+
+
+* Closure Elimination: lambda lifting
+
+By lifting the lambdas to become static functions, the process of compiling functions into imperative bytecode gets simple.
+
+#+BEGIN_SRC js
+
+// using only lambdas
+
+const _1 = (add5 => add5(3)) (y => 5 + y);
+console.log(_1); // -> 8
+
+// using only static functions
+
+function $1 (y) {
+    return 5 + y;
+}
+
+function $2 () {
+  return $1(3);
+}
+
+const _2 = $2();
+console.log(_2);  // -> 8
+
+#+END_SRC
+
+#+RESULTS:
+: 8
+: 8
+: undefined
+
+Lifting proof of concept:
+
+#+name: inductive-liftedtree
+#+BEGIN_SRC lean4 :noweb strip-export
+
+<<inductive-syntaxtree>>
+
+inductive LiftedTree where
+  | string     : Location → String → LiftedTree
+  | list       : Location → List LiftedTree → LiftedTree
+  | map        : Location → List LiftedTree → LiftedTree
+  | definition : Location → (label : LiftedTree) → (value : LiftedTree) → LiftedTree
+  | function   : Location → (paramT : LiftedTree) → (returnT : LiftedTree) → (body : LiftedTree) → LiftedTree
+  | apply      : Location → (callee : LiftedTree) → (args : List LiftedTree) → LiftedTree
+  | varBound   : Location → (index : Nat) → LiftedTree
+  | varFree    : Location → (label : String) → LiftedTree
+  | error      : Location → String → LiftedTree
+  deriving Repr, Nonempty
+
+mutual
+  def lambdaLiftingElements : List SyntaxTree → List LiftedTree
+    | [] => []
+    | x :: xs => (lambdaLifting x).append $ lambdaLiftingElements xs
+
+  def lambdaLifting : SyntaxTree → List LiftedTree
+    | SyntaxTree.string loc s => [LiftedTree.string loc s]
+    | SyntaxTree.list loc elements =>
+      [LiftedTree.list loc $ lambdaLiftingElements elements]
+    | SyntaxTree.map loc elements =>
+      [LiftedTree.map loc $ lambdaLiftingElements elements]
+    | SyntaxTree.varBound loc label =>
+      [LiftedTree.varBound loc label]
+    | _ => sorry
+end
+
+#+END_SRC
