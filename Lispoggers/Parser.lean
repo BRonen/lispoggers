@@ -274,7 +274,7 @@ mutual
       let node := LiftedTree.varBound loc index
       (defs, node)
 
-    | SyntaxTree.definition loc label value =>
+    | SyntaxTree.definition _loc label value =>
       match value with
       | SyntaxTree.macro loc paramT returnT body =>
         let (defs, paramT) := lambdaLifting defs paramT
@@ -295,10 +295,25 @@ mutual
         let definition := TopLevelDefs.value label node
         (definition :: defs, node)
 
-    | SyntaxTree.macro loc _paramT _returnT _body =>
-      (defs, LiftedTree.error loc s!"Function()")
-    | SyntaxTree.lambda loc _paramT _returnT _body =>
-      (defs, LiftedTree.error loc s!"Macro()")
+    | SyntaxTree.macro loc paramT returnT body =>
+      let (defs, paramT) := lambdaLifting defs paramT
+      let (defs, returnT) := lambdaLifting defs returnT
+      let (defs, body) := lambdaLifting defs body
+
+      let label := s!"__lifted_function_{defs.length}()"
+      let definition := TopLevelDefs.lambda label paramT returnT body
+
+      (definition :: defs, LiftedTree.varFree loc label)
+
+    | SyntaxTree.lambda loc paramT returnT body =>
+      let (defs, paramT) := lambdaLifting defs paramT
+      let (defs, returnT) := lambdaLifting defs returnT
+      let (defs, body) := lambdaLifting defs body
+
+      let label := s!"__lifted_macro_{defs.length}()"
+      let definition := TopLevelDefs.lambda label paramT returnT body
+
+      (definition :: defs, LiftedTree.varFree loc label)
 
     | SyntaxTree.data loc _deps _constructors =>
       (defs, LiftedTree.error loc "Data node not implemented")
