@@ -1,0 +1,15 @@
+pushInt 3
+
+label teste
+pushInt 2
+add
+
+debug
+
+pushInt 10
+cmp
+pop
+ltF
+jump teste
+
+debug

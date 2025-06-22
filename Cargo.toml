@@ -13,3 +13,4 @@ name = "kekw-main"
 path = "Kekw/main.rs"
 
 [dependencies]
+regex = "1.11.1"
