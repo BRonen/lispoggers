@@ -3,8 +3,13 @@ name = "lispoggers"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
+[lib]
+crate-type = ["staticlib"] # ["cdylib"]
 name = "kekw"
+path = "Kekw/lib.rs"
+
+[[bin]]
+name = "kekw-main"
 path = "Kekw/main.rs"
 
 [dependencies]
