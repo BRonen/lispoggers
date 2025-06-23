@@ -65,20 +65,6 @@ fn parse_instructions(lines_iter: io::Lines<io::BufReader<File>>) -> VecDeque<In
 
 }
 
-// VecDeque::from([
-//     Instruction::PushInt(3),
-//     Instruction::Label("teste".to_string()),
-//     Instruction::PushInt(2),
-//     Instruction::Add,
-//     Instruction::Debug,
-//     Instruction::PushInt(10),
-//     Instruction::Cmp,
-//     Instruction::Pop,
-//     Instruction::LtF,
-//     Instruction::Jump("teste".to_string()),
-//     Instruction::Debug,
-// ])
-
 fn main() {
   let lines =
     read_lines("./bytecode.kekw")
@@ -96,3 +82,36 @@ fn main() {
   }
 }
 
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use lib::Instruction;
+
+  #[test]
+  fn parse_instructions_test () {
+    let lines =
+      read_lines("./bytecode.kekw")
+      .unwrap_or_else(|e| {
+        eprintln!("Error reading file: {}", e);
+        panic!("Exiting due to error");
+      });
+    let instructions = parse_instructions(lines);
+    let expected = VecDeque::from([
+      Instruction::PushInt(3),
+      Instruction::Label("teste".to_string()),
+      Instruction::PushInt(2),
+      Instruction::Add,
+      Instruction::Debug,
+      Instruction::PushInt(10),
+      Instruction::Cmp,
+      Instruction::Pop,
+      Instruction::LtF,
+      Instruction::Jump("teste".to_string()),
+      Instruction::Debug,
+    ]);
+
+    assert_eq!(instructions, expected);
+  }
+
+}

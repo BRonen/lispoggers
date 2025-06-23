@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 use std::collections::{HashMap, VecDeque};
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Instruction {
   PushInt(i32),
   PushStr(String),
@@ -183,6 +183,21 @@ impl VM {
 }
 
 #[no_mangle]
-pub extern "C" fn my_rust_function(arg: i32) -> i32 {
+pub extern "C"
+fn my_rust_function(arg: i32) -> i32 {
     arg * 3
+}
+
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn my_rust_function_test () {
+    assert_eq!(my_rust_function(1), 3);
+    assert_eq!(my_rust_function(2), 6);
+    assert_eq!(my_rust_function(3), 9);
+  }
+
 }
