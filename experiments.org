@@ -11,8 +11,10 @@ structure Location where
 
 #+END_SRC
 
+#+RESULTS: structure-location
+
 #+name: inductive-syntaxtree
-#+BEGIN_SRC lean4
+#+BEGIN_SRC lean4 :noweb strip-export
 
 <<structure-location>>
 
@@ -31,6 +33,8 @@ inductive SyntaxTree where
   deriving Repr, Nonempty
 
 #+END_SRC
+
+#+RESULTS: inductive-syntaxtree
 
 
 * Closure Elimination: lambda lifting
@@ -64,39 +68,81 @@ console.log(_2);  // -> 8
 : 8
 : undefined
 
-Lifting proof of concept:
 
-#+name: inductive-liftedtree
-#+BEGIN_SRC lean4 :noweb strip-export
+* Bytecode
 
-<<inductive-syntaxtree>>
+The initial concept of the virtual machine will be stack-based:
 
-inductive LiftedTree where
-  | string     : Location → String → LiftedTree
-  | list       : Location → List LiftedTree → LiftedTree
-  | map        : Location → List LiftedTree → LiftedTree
-  | definition : Location → (label : LiftedTree) → (value : LiftedTree) → LiftedTree
-  | function   : Location → (paramT : LiftedTree) → (returnT : LiftedTree) → (body : LiftedTree) → LiftedTree
-  | apply      : Location → (callee : LiftedTree) → (args : List LiftedTree) → LiftedTree
-  | varBound   : Location → (index : Nat) → LiftedTree
-  | varFree    : Location → (label : String) → LiftedTree
-  | error      : Location → String → LiftedTree
-  deriving Repr, Nonempty
+#+BEGIN_SRC kekw
+pushInt 3
 
-mutual
-  def lambdaLiftingElements : List SyntaxTree → List LiftedTree
-    | [] => []
-    | x :: xs => (lambdaLifting x).append $ lambdaLiftingElements xs
+label teste
+pushInt 2
+add
 
-  def lambdaLifting : SyntaxTree → List LiftedTree
-    | SyntaxTree.string loc s => [LiftedTree.string loc s]
-    | SyntaxTree.list loc elements =>
-      [LiftedTree.list loc $ lambdaLiftingElements elements]
-    | SyntaxTree.map loc elements =>
-      [LiftedTree.map loc $ lambdaLiftingElements elements]
-    | SyntaxTree.varBound loc label =>
-      [LiftedTree.varBound loc label]
-    | _ => sorry
-end
+debug
 
+pushInt 10
+cmp
+pop
+ltF
+jump teste
+
+debug
 #+END_SRC
+
+#+RESULTS:
+#+begin_example
+=== Debug ===
+stack: [Int(5)]
+labels: {"teste": 1}
+lt: false
+eq: false
+=== Debug ===
+=== Debug ===
+stack: [Int(7)]
+labels: {"teste": 1}
+lt: true
+eq: false
+=== Debug ===
+=== Debug ===
+stack: [Int(9)]
+labels: {"teste": 1}
+lt: true
+eq: false
+=== Debug ===
+=== Debug ===
+stack: [Int(11)]
+labels: {"teste": 1}
+lt: true
+eq: false
+=== Debug ===
+=== Debug ===
+stack: [Int(11)]
+labels: {"teste": 1}
+lt: false
+eq: false
+=== Debug ===
+
+Process kekw finished
+#+end_example
+
+
+#+BEGIN_SRC elisp
+(defun org-babel-execute:kekw (body params)
+  (let* ((command '("env" "RUSTFLAGS=-Awarnings" "cargo" "run" "--quiet"))
+         (output (with-temp-buffer
+                   (let ((proc (make-process
+                                :name "kekw"
+                                :buffer (current-buffer)
+                                :command command
+                                :connection-type 'pipe)))
+                     (process-send-string proc body)
+                     (process-send-eof proc)
+                     (while (accept-process-output proc))
+                     (buffer-string)))))
+    output))
+#+END_SRC
+
+#+RESULTS:
+: org-babel-execute:kekw

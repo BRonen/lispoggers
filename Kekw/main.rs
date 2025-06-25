@@ -7,18 +7,18 @@ use std::path::Path;
 mod lib;
 use lib::{Instruction, VM};
 
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+fn read_lines<P>(filename: P) -> io::Result<io::BufReader<File>>
 where P: AsRef<Path>, {
     let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
+    Ok(io::BufReader::new(file))
 }
 
 
-fn parse_instructions(lines_iter: io::Lines<io::BufReader<File>>) -> VecDeque<Instruction> {
+fn parse_instructions(lines_iter: &mut dyn BufRead) -> VecDeque<Instruction> {
   let kekw_token_break_re = Regex::new(r"\s+").unwrap();
   let mut instructions = VecDeque::new();
 
-  for line in lines_iter.map_while(Result::ok) {
+  for line in lines_iter.lines().map_while(Result::ok) {
     let trimmed = line.trim();
 
     if trimmed.is_empty() { continue; }
@@ -66,14 +66,17 @@ fn parse_instructions(lines_iter: io::Lines<io::BufReader<File>>) -> VecDeque<In
 }
 
 fn main() {
-  let lines =
+  let stdin = io::stdin();
+  let mut reader = io::BufReader::new(stdin.lock());
+
+  let mut _reader_fallback =
     read_lines("./bytecode.kekw")
     .unwrap_or_else(|e| {
       eprintln!("Error reading file: {}", e);
       panic!("Exiting due to error");
     });
 
-  let program = parse_instructions(lines);
+  let program = parse_instructions(&mut reader);
 
   let mut vm = VM::new(program.clone());
 
@@ -90,13 +93,8 @@ mod tests {
 
   #[test]
   fn parse_instructions_test () {
-    let lines =
-      read_lines("./bytecode.kekw")
-      .unwrap_or_else(|e| {
-        eprintln!("Error reading file: {}", e);
-        panic!("Exiting due to error");
-      });
-    let instructions = parse_instructions(lines);
+    let mut lines = read_lines("./bytecode.kekw").unwrap();
+    let instructions = parse_instructions(&mut lines);
     let expected = VecDeque::from([
       Instruction::PushInt(3),
       Instruction::Label("teste".to_string()),
