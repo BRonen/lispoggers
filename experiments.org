@@ -1,42 +1,4 @@
 
-#+name: structure-location
-#+BEGIN_SRC lean4
-
-structure Location where
-  line       : Nat
-  column     : Nat
-  size       : Nat
-  identifier : String
-  deriving DecidableEq, Repr, Nonempty
-
-#+END_SRC
-
-#+RESULTS: structure-location
-
-#+name: inductive-syntaxtree
-#+BEGIN_SRC lean4 :noweb strip-export
-
-<<structure-location>>
-
-inductive SyntaxTree where
-  | string     : Location → String → SyntaxTree
-  | list       : Location → List SyntaxTree → SyntaxTree
-  | map        : Location → List SyntaxTree → SyntaxTree
-  | lambda     : Location → (paramT : SyntaxTree) → (returnT : SyntaxTree) → (body : SyntaxTree) → SyntaxTree
-  | macro      : Location → (paramT : SyntaxTree) → (returnT : SyntaxTree) → (body : SyntaxTree) → SyntaxTree
-  | data       : Location → (deps : SyntaxTree) → (constructors : List SyntaxTree) → SyntaxTree
-  | apply      : Location → (callee : SyntaxTree) → (args : List SyntaxTree) → SyntaxTree
-  | definition : Location → (label : SyntaxTree) → (value : SyntaxTree) → SyntaxTree
-  | varBound   : Location → (index : Nat) → SyntaxTree
-  | varFree    : Location → (label : String) → SyntaxTree
-  | error      : Location → String → SyntaxTree
-  deriving Repr, Nonempty
-
-#+END_SRC
-
-#+RESULTS: inductive-syntaxtree
-
-
 * Closure Elimination: lambda lifting
 
 By lifting the lambdas to become static functions, the process of compiling functions into imperative bytecode gets simple.
@@ -82,7 +44,7 @@ add
 
 debug
 
-pushInt 10
+pushInt 12
 cmp
 pop
 ltF
@@ -118,7 +80,13 @@ lt: true
 eq: false
 === Debug ===
 === Debug ===
-stack: [Int(11)]
+stack: [Int(13)]
+labels: {"teste": 1}
+lt: true
+eq: false
+=== Debug ===
+=== Debug ===
+stack: [Int(13)]
 labels: {"teste": 1}
 lt: false
 eq: false
@@ -127,6 +95,7 @@ eq: false
 Process kekw finished
 #+end_example
 
+* Org Babel Extension
 
 #+BEGIN_SRC elisp
 (defun org-babel-execute:kekw (body params)
