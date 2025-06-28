@@ -8,11 +8,12 @@ pub enum Instruction {
   Jump(String),
   Ret,
 
-  // Pushes, pop
+  // Pushes, pop, utils
   PushInt(i32),
   PushBool(bool),
   PushStr(String),
   Pop,
+  Dup,
 
   // Top Level definitions
   Store(String),
@@ -50,6 +51,7 @@ impl Display for Instruction {
       PushBool(v) => format!("<PushBool {}>", v),
       PushStr(v) => format!("<PushStr {}>", v),
       Pop => "<Pop>".to_string(),
+      Dup => "<Dup>".to_string(),
 
       Store(var) => format!("<Store {}>", var),
       Load(var) => format!("<Load {}>", var),
@@ -152,6 +154,11 @@ impl VM {
 
       // Pushes and pop
       Some(Instruction::Pop) => { self.stack.pop(); },
+      Some(Instruction::Dup) => {
+        let v = self.stack.pop().unwrap();
+        self.stack.push(v.clone());
+        self.stack.push(v);
+      },
       Some(Instruction::PushInt(v)) => self.stack.push(Value::Int(*v)),
       Some(Instruction::PushStr(v)) => self.stack.push(Value::Str(v.to_string())),
       Some(Instruction::PushBool(v)) => self.stack.push(Value::Bool(*v)),

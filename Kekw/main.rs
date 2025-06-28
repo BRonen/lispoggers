@@ -70,6 +70,7 @@ fn parse_instructions(lines_iter: &mut dyn BufRead) -> VecDeque<Instruction> {
         }
       },
       Some("pop") => instructions.push_back(Instruction::Pop),
+      Some("dup") => instructions.push_back(Instruction::Dup),
 
       // Top Level definitions
       Some("store") => {

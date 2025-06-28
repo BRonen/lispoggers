@@ -44,9 +44,14 @@ add
 
 debug
 
+dup
 pushInt 12
-pop
+gt
+not
+sif
+jump teste
 
+pushStr finished
 debug
 #+END_SRC
 
@@ -59,7 +64,31 @@ labels: {"teste": 1}
 freemem: {}
 === Debug ===
 === Debug ===
-stack: [Int(5)]
+stack: [Int(7)]
+stacktrace: []
+labels: {"teste": 1}
+freemem: {}
+=== Debug ===
+=== Debug ===
+stack: [Int(9)]
+stacktrace: []
+labels: {"teste": 1}
+freemem: {}
+=== Debug ===
+=== Debug ===
+stack: [Int(11)]
+stacktrace: []
+labels: {"teste": 1}
+freemem: {}
+=== Debug ===
+=== Debug ===
+stack: [Int(13)]
+stacktrace: []
+labels: {"teste": 1}
+freemem: {}
+=== Debug ===
+=== Debug ===
+stack: [Int(13), Str("finished")]
 stacktrace: []
 labels: {"teste": 1}
 freemem: {}
