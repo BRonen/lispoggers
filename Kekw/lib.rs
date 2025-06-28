@@ -3,16 +3,38 @@ use std::collections::{HashMap, VecDeque};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Instruction {
-  PushInt(i32),
-  PushStr(String),
+  // Jumps
   Label(String),
   Jump(String),
-  Debug,
+  Ret,
+
+  // Pushes, pop
+  PushInt(i32),
+  PushBool(bool),
+  PushStr(String),
   Pop,
+
+  // Top Level definitions
+  Store(String),
+  Load(String),
+
+  // Arithmetic
   Add,
-  Cmp,
-  LtF,
-  EqF,
+  Sub,
+  Mult,
+  Div,
+
+  // Boolean logic
+  Eq,
+  Lt,
+  Gt,
+  Or,
+  Not,
+  And,
+  Sif,
+
+  // Debugging
+  Debug,
 }
 
 impl Display for Instruction {
@@ -20,35 +42,51 @@ impl Display for Instruction {
     use Instruction::*;
 
     let instruction = match self {
-      PushInt(v) => format!("PushInt({})", v),
-      PushStr(v) => format!("PushStr({})", v),
-      Label(label) => format!("Label({})", label),
-      Jump(label) => format!("Jump({})", label),
-      Debug => String::from("Debug"),
-      Pop => String::from("Pop"),
-      Add => String::from("Add"),
-      Cmp => String::from("Cmp"),
-      LtF => String::from("Lt"),
-      EqF => String::from("Eq"),
+      Label(label) => format!("<Jump {}>", label),
+      Jump(label) => format!("<Jump {}>", label),
+      Ret => "<Ret>".to_string(),
+
+      PushInt(v) => format!("<PushInt {}>", v),
+      PushBool(v) => format!("<PushBool {}>", v),
+      PushStr(v) => format!("<PushStr {}>", v),
+      Pop => "<Pop>".to_string(),
+
+      Store(var) => format!("<Store {}>", var),
+      Load(var) => format!("<Load {}>", var),
+
+      Add  => "<Add>".to_string(),
+      Sub  => "<Sub>".to_string(),
+      Mult => "<Mult>".to_string(),
+      Div  => "<Div>".to_string(),
+
+      Eq  => "<Eq>".to_string(),
+      Lt  => "<Lt>".to_string(),
+      Gt  => "<Gt>".to_string(),
+      Or  => "<Or>".to_string(),
+      Not => "<Not>".to_string(),
+      And => "<And>".to_string(),
+      Sif => "<Sif>".to_string(),
+
+      Debug => "<Debug>".to_string(),
     };
 
     f.write_str(&instruction)
   }
 }
 
-#[derive(Debug)]
-enum Value {
+#[derive(Debug, Clone)]
+pub enum Value {
   Int(i32),
   Str(String),
+  Bool(bool)
 }
 
 impl Display for Value {
   fn fmt(&self, f: &mut Formatter) -> Result {
-    use Value::*;
-
     let value = match self {
-      Int(v) => format!("Int({})", v),
-      Str(v) => format!("Str({})", v),
+      Value::Int(v) => format!("Int({})", v),
+      Value::Str(v) => format!("Str({})", v),
+      Value::Bool(v) => format!("Bool({})", v),
     };
 
     f.write_str(&value)
@@ -57,10 +95,10 @@ impl Display for Value {
 
 pub struct VM {
   instructions: VecDeque<Instruction>,
-  labels: HashMap<String, usize>,
+  labels: HashMap<String, usize>, // @TODO: replace every label by static addresses
+  freemem: HashMap<String, Value>,
   stack: Vec<Value>,
-  lt: bool,
-  eq: bool,
+  stacktrace: Vec<i32>,
   pc: usize,
 }
 
@@ -69,96 +107,32 @@ impl VM {
     Self {
       instructions,
       labels: HashMap::new(),
+      freemem: HashMap::new(),
       stack: Vec::new(),
-      lt: false,
-      eq: false,
+      stacktrace: Vec::new(),
       pc: 0,
     }
-  }
-
-  pub fn push_int(&mut self, v: i32) -> &mut Self {
-    self.stack.push(Value::Int(v));
-
-    self
-  }
-
-  pub fn push_str(&mut self, v: String) -> &mut Self {
-    self.stack.push(Value::Str(v));
-
-    self
-  }
-
-  pub fn label(&mut self, label: String) -> &mut Self {
-    self.labels.insert(label, self.pc.clone() - 1);
-
-    self
-  }
-
-  pub fn jump(&mut self, label: String) -> &mut Self {
-    let addr = self.labels.get(&label).unwrap();
-    self.pc = *addr;
-
-    self
   }
 
   pub fn debug(&mut self) -> &mut Self {
     println!("=== Debug ===");
     println!("stack: {:?}", self.stack);
+    println!("stacktrace: {:?}", self.stacktrace);
     println!("labels: {:?}", self.labels);
-    println!("lt: {:?}", self.lt);
-    println!("eq: {:?}", self.eq);
+    println!("freemem: {:?}", self.freemem);
     println!("=== Debug ===");
 
     self
   }
 
-  pub fn pop(&mut self) -> &mut Self {
-    self.stack.pop();
-    self
-  }
-
-  pub fn add(&mut self) -> &mut Self {
+  pub fn pop_two<F>(&mut self, func: F) -> &mut Self
+  where
+    F: FnOnce(&mut VM, Option<Value>, Option<Value>) -> ()
+  {
     let f = self.stack.pop();
     let s = self.stack.pop();
 
-    match (f, s) {
-      (Some(Value::Int(f)), Some(Value::Int(s))) => self.stack.push(Value::Int(f + s)),
-      _ => todo!(),
-    };
-
-    self
-  }
-
-  pub fn cmp(&mut self) -> &mut Self {
-    let b_value = self.stack.pop().unwrap();
-    let a_value = self.stack.pop().unwrap();
-
-    if let (Value::Int(a), Value::Int(b)) = (a_value, b_value) {
-      let lt = a < b;
-      let eq = a == b;
-
-      self.lt = lt;
-      self.eq = eq;
-
-      self.stack.push(Value::Int(a));
-      self.stack.push(Value::Int(b));
-    }
-
-    self
-  }
-
-  pub fn ltf(&mut self) -> &mut Self {
-    if !self.lt {
-      self.pc += 1;
-    }
-
-    self
-  }
-
-  pub fn eqf(&mut self) -> &mut Self {
-    if !self.eq {
-      self.pc += 1;
-    }
+    func(self, f, s);
 
     self
   }
@@ -167,18 +141,143 @@ impl VM {
     self.pc = self.pc + 1;
 
     match self.instructions.get(self.pc - 1) {
-      Some(Instruction::PushInt(v)) => self.push_int(*v),
-      Some(Instruction::PushStr(v)) => self.push_str(v.to_string()),
-      Some(Instruction::Label(label)) => self.label(label.to_string()),
-      Some(Instruction::Jump(label)) => self.jump(label.to_string()),
-      Some(Instruction::Debug) => self.debug(),
-      Some(Instruction::Pop) => self.pop(),
-      Some(Instruction::Add) => self.add(),
-      Some(Instruction::Cmp) => self.cmp(),
-      Some(Instruction::LtF) => self.ltf(),
-      Some(Instruction::EqF) => self.eqf(),
-      None => self,
+      // Jumps,
+      Some(Instruction::Label(label)) => {
+        self.labels.insert(label.to_string(), self.pc.clone() - 1);
+      },
+      Some(Instruction::Jump(label)) => {
+        let addr = self.labels.get(label).unwrap();
+        self.pc = *addr;
+      },
+
+      // Pushes and pop
+      Some(Instruction::Pop) => { self.stack.pop(); },
+      Some(Instruction::PushInt(v)) => self.stack.push(Value::Int(*v)),
+      Some(Instruction::PushStr(v)) => self.stack.push(Value::Str(v.to_string())),
+      Some(Instruction::PushBool(v)) => self.stack.push(Value::Bool(*v)),
+
+      // Top Level definitions
+      Some(Instruction::Store(label)) => {
+        match self.stack.pop() {
+          Some(v) => {
+            self.freemem.insert(label.to_string(), v);
+          },
+          _ => todo!(),
+        }
+      },
+      Some(Instruction::Load(label)) => {
+        let val = self.freemem.get(label).unwrap().clone();
+        self.stack.push(val);
+      },
+
+      // Arithmetic
+      Some(Instruction::Add) => {
+        self.pop_two(|vm, f, s| {
+          match (f, s) {
+            (Some(Value::Int(f)), Some(Value::Int(s))) => vm.stack.push(Value::Int(f + s)),
+            _ => todo!(),
+          };
+        });
+      },
+      Some(Instruction::Sub) => {
+        self.pop_two(|vm, f, s| {
+          match (f, s) {
+            (Some(Value::Int(f)), Some(Value::Int(s))) => vm.stack.push(Value::Int(f - s)),
+            _ => todo!(),
+          };
+        });
+      },
+      Some(Instruction::Mult) => {
+        self.pop_two(|vm, f, s| {
+          match (f, s) {
+            (Some(Value::Int(f)), Some(Value::Int(s))) => vm.stack.push(Value::Int(f * s)),
+            _ => todo!(),
+          };
+        });
+      },
+      Some(Instruction::Div) => {
+        self.pop_two(|vm, f, s| {
+          match (f, s) {
+            (Some(Value::Int(f)), Some(Value::Int(s))) => vm.stack.push(Value::Int(f / s)),
+            _ => todo!(),
+          };
+        });
+      },
+
+      // Boolean logic
+      Some(Instruction::Eq) => {
+        self.pop_two(|vm, f, s| {
+          match (f, s) {
+            (Some(Value::Bool(f)), Some(Value::Bool(s))) => vm.stack.push(Value::Bool(f == s)),
+            (Some(Value::Str(f)), Some(Value::Str(s)))   => vm.stack.push(Value::Bool(f == s)),
+            (Some(Value::Int(f)), Some(Value::Int(s)))   => vm.stack.push(Value::Bool(f == s)),
+            _ => todo!(),
+          }
+        });
+      },
+      Some(Instruction::Lt) => {
+        self.pop_two(|vm, f, s| {
+          match (f, s) {
+            (Some(Value::Bool(f)), Some(Value::Bool(s))) => vm.stack.push(Value::Bool(f < s)),
+            (Some(Value::Str(f)), Some(Value::Str(s)))   => vm.stack.push(Value::Bool(f < s)),
+            (Some(Value::Int(f)), Some(Value::Int(s)))   => vm.stack.push(Value::Bool(f < s)),
+            _ => todo!(),
+          }
+        });
+      },
+      Some(Instruction::Gt) => {
+        self.pop_two(|vm, f, s| {
+          match (f, s) {
+            (Some(Value::Bool(f)), Some(Value::Bool(s))) => vm.stack.push(Value::Bool(f > s)),
+            (Some(Value::Str(f)), Some(Value::Str(s)))   => vm.stack.push(Value::Bool(f > s)),
+            (Some(Value::Int(f)), Some(Value::Int(s)))   => vm.stack.push(Value::Bool(f > s)),
+            _ => todo!(),
+          }
+        });
+      },
+      Some(Instruction::Or) => {
+        self.pop_two(|vm, f, s| {
+          match (f, s) {
+            (Some(Value::Bool(f)), Some(Value::Bool(s))) => vm.stack.push(Value::Bool(f || s)),
+            _ => todo!(),
+          }
+        });
+      },
+      Some(Instruction::And) => {
+        self.pop_two(|vm, f, s| {
+          match (f, s) {
+            (Some(Value::Bool(f)), Some(Value::Bool(s))) => vm.stack.push(Value::Bool(f && s)),
+            _ => todo!(),
+          }
+        });
+      },
+      Some(Instruction::Not) => {
+        match self.stack.pop() {
+          Some(Value::Bool(f)) => self.stack.push(Value::Bool(!f)),
+          _ => todo!(),
+        }
+      },
+      Some(Instruction::Sif) => {
+        match self.stack.pop() {
+          Some(Value::Bool(true)) => {
+            self.pc += 1;
+            //self.stack.push(Value::Bool(true));
+          },
+          Some(Value::Bool(false)) => {
+            //self.stack.push(Value::Bool(false));
+          },
+          _ => todo!(),
+        }
+      },
+
+      Some(Instruction::Debug) => {
+        self.debug();
+      },
+
+      _ => {},
     }
+
+    self
   }
 }
 

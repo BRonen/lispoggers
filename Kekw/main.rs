@@ -13,7 +13,6 @@ where P: AsRef<Path>, {
     Ok(io::BufReader::new(file))
 }
 
-
 fn parse_instructions(lines_iter: &mut dyn BufRead) -> VecDeque<Instruction> {
   let kekw_token_break_re = Regex::new(r"\s+").unwrap();
   let mut instructions = VecDeque::new();
@@ -30,15 +29,7 @@ fn parse_instructions(lines_iter: &mut dyn BufRead) -> VecDeque<Instruction> {
       .peekable();
 
     match tokens_iter.next() {
-      Some("pushInt") => {
-        match tokens_iter.next() {
-          Some(num) => match num.parse::<i32>() {
-            Ok(value) => instructions.push_back(Instruction::PushInt(value)),
-            Err(_) => println!("Line {}: Error: Expected integer after push", line),
-          },
-          _ => println!("Line {}: Error: Invalid push syntax", line),
-        }
-      },
+      // Jumps
       Some("label") => {
         match tokens_iter.next() {
           Some(label) => instructions.push_back(Instruction::Label(String::from(label))),
@@ -51,12 +42,69 @@ fn parse_instructions(lines_iter: &mut dyn BufRead) -> VecDeque<Instruction> {
           _ => println!("Line {}: Error: Invalid label syntax", line),
         }
       },
-      Some("add") => instructions.push_back(Instruction::Add),
-      Some("ltF") => instructions.push_back(Instruction::LtF),
+      Some("ret") => instructions.push_back(Instruction::Ret),
+
+      // Pushes and pop
+      Some("pushInt") => {
+        match tokens_iter.next() {
+          Some(num) => match num.parse::<i32>() {
+            Ok(value) => instructions.push_back(Instruction::PushInt(value)),
+            Err(_) => println!("Line {}: Error: Expected integer after push", line),
+          },
+          _ => println!("Line {}: Error: Invalid push syntax", line),
+        }
+      },
+      Some("pushStr") => {
+        match tokens_iter.next() {
+          Some(s) => instructions.push_back(Instruction::PushStr(s.to_string())),
+          _ => println!("Line {}: Error: Invalid push syntax", line),
+        }
+      },
+      Some("pushBool") => {
+        match tokens_iter.next() {
+          Some(v) => match v.parse::<bool>() {
+            Ok(value) => instructions.push_back(Instruction::PushBool(value)),
+            Err(_) => println!("Line {}: Error: Expected integer after push", line),
+          },
+          _ => println!("Line {}: Error: Invalid push syntax", line),
+        }
+      },
       Some("pop") => instructions.push_back(Instruction::Pop),
-      Some("cmp") => instructions.push_back(Instruction::Cmp),
+
+      // Top Level definitions
+      Some("store") => {
+        match tokens_iter.next() {
+          Some(s) => instructions.push_back(Instruction::Store(s.to_string())),
+          _ => println!("Line {}: Error: Invalid push syntax", line),
+        }
+      },
+      Some("load") => {
+        match tokens_iter.next() {
+          Some(s) => instructions.push_back(Instruction::Load(s.to_string())),
+          _ => println!("Line {}: Error: Invalid push syntax", line),
+        }
+      },
+
+      // Arithmetic
+      Some("add") => instructions.push_back(Instruction::Add),
+      Some("sub") => instructions.push_back(Instruction::Sub),
+      Some("mult") => instructions.push_back(Instruction::Mult),
+      Some("div") => instructions.push_back(Instruction::Div),
+
+      // Boolean logic
+      Some("eq") => instructions.push_back(Instruction::Eq),
+      Some("lt") => instructions.push_back(Instruction::Lt),
+      Some("gt") => instructions.push_back(Instruction::Gt),
+      Some("or") => instructions.push_back(Instruction::Or),
+      Some("not") => instructions.push_back(Instruction::Not),
+      Some("and") => instructions.push_back(Instruction::And),
+      Some("sif") => instructions.push_back(Instruction::Sif),
+
+      // Debugging
       Some("debug") => instructions.push_back(Instruction::Debug),
+
       Some(other) => println!("Line {}: \nError: Unknown instruction '{}'", line, other),
+
       _ => {}
     }
   }

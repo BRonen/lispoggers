@@ -45,10 +45,7 @@ add
 debug
 
 pushInt 12
-cmp
 pop
-ltF
-jump teste
 
 debug
 #+END_SRC
@@ -57,39 +54,50 @@ debug
 #+begin_example
 === Debug ===
 stack: [Int(5)]
+stacktrace: []
 labels: {"teste": 1}
-lt: false
-eq: false
+freemem: {}
 === Debug ===
 === Debug ===
-stack: [Int(7)]
+stack: [Int(5)]
+stacktrace: []
 labels: {"teste": 1}
-lt: true
-eq: false
+freemem: {}
+=== Debug ===
+
+Process kekw finished
+#+end_example
+
+Free memory (stored out of the stack, using a hashmap):
+
+#+BEGIN_SRC kekw
+pushStr world
+debug
+store hello
+debug
+load hello
+debug
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+=== Debug ===
+stack: [Str("world")]
+stacktrace: []
+labels: {}
+freemem: {}
 === Debug ===
 === Debug ===
-stack: [Int(9)]
-labels: {"teste": 1}
-lt: true
-eq: false
+stack: []
+stacktrace: []
+labels: {}
+freemem: {"hello": Str("world")}
 === Debug ===
 === Debug ===
-stack: [Int(11)]
-labels: {"teste": 1}
-lt: true
-eq: false
-=== Debug ===
-=== Debug ===
-stack: [Int(13)]
-labels: {"teste": 1}
-lt: true
-eq: false
-=== Debug ===
-=== Debug ===
-stack: [Int(13)]
-labels: {"teste": 1}
-lt: false
-eq: false
+stack: [Str("world")]
+stacktrace: []
+labels: {}
+freemem: {"hello": Str("world")}
 === Debug ===
 
 Process kekw finished
