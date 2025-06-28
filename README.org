@@ -15,37 +15,56 @@ LISPoggers is an acronym for "Lisp Is Simply Poggers".
 
 ** Algebraic Data types
 
-Every structure can be represented by a data type, and every datatype is represented by a name, a map of dependencies identifiers its types.
+Every structure can be represented by a data type, every datatype is represented by a map of dependencies and a list of constructors that hold types.
 
 #+BEGIN_SRC clojure
-(data <name> <dependencies>
+(data <dependencies>
   (<constructor> <type>*)*)
 #+END_SRC
 
 *** Booleans
 
+Simplest datatype example:
+
 #+BEGIN_SRC clojure
-(data Bool {}
-  (false)
-  (true))
+(def Bool
+  (data {}
+    (false)
+    (true)))
+#+END_SRC
+
+*** Naturals
+
+I still need to think about its syntax:
+
+#+BEGIN_SRC clojure
+(def Nat
+  (data {}
+    (zero)
+    (inc %))) ;; TODO: recursive datatype syntax
 #+END_SRC
 
 *** Lists
 
+Generic datatypes receive its parameters as dependencies:
+
 #+BEGIN_SRC clojure
-(data List {a Type}
-  (nil)
-  (cons a (List a)))
+(def List
+  (data {a Type}
+    (empty)
+    (cons a (List a)))) ;; TODO: recursive datatype syntax
 #+END_SRC
 
 *** Maps
 
+Runtime values exists and can be used on type level, so it can be used on datatypes definitions
+
 #+BEGIN_SRC clojure
-(data Map
-  {k Type
-   v Type}
-  (empty (Map k v))
-  (cons k v (Map k v)))
+(def Map
+  (data {k Type
+         v Type}
+    (empty)
+    (cons k v (Map k v)))) ;; TODO: recursive datatype syntax
 #+END_SRC
 
 ** Pattern matching
@@ -67,27 +86,44 @@ Every structure can be represented by a data type, and every datatype is represe
 ** Functions
 
 #+BEGIN_SRC clojure
-(lambda <name> <type>
+(fn <param>
+  <param type>
+  <return type>
+
   <expr>)
 #+END_SRC
 
 *** Function application
 
 #+BEGIN_SRC clojure
-(<name> <expr>)
+(<fn> <expr>)
+
+;; as in
+
+((fn foo
+   Bool
+   Bool
+
+   (not foo))
+ bar)
 #+END_SRC
 
 ** Macros
 
+Basically the same as functions but it runs on compile time, so it also has access to types as values.
+
 #+BEGIN_SRC clojure
-(macro <name> <type>
+(macro <param>
+  <param type>
+  <return type>
+
   <expr>)
 #+END_SRC
 
 *** Macro application
 
 #+BEGIN_SRC clojure
-(<name> <expr>)
+(<macro> <expr>)
 #+END_SRC
 
 ** Complete BNF grammar
