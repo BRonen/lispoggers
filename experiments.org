@@ -172,7 +172,7 @@ Process kekw finished
 
 #+BEGIN_SRC elisp
 (defun org-babel-execute:lpog (body params)
-  (let* ((command '("env" "WASD=WASD" "lake" "exec" "--quiet" "lispoggers"))
+  (let* ((command '("lake" "exec" "--quiet" "lispoggers"))
          (output (with-temp-buffer
                    (let ((proc (make-process
                                 :name "lispoggers"
