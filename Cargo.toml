@@ -6,7 +6,7 @@ edition = "2021"
 [lib]
 crate-type = ["staticlib"] # ["cdylib"]
 name = "kekw"
-path = "Kekw/lib.rs"
+path = "Kekw/kekw.rs"
 
 [[bin]]
 name = "kekw-main"

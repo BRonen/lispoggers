@@ -291,7 +291,7 @@ impl VM {
 #[no_mangle]
 pub extern "C"
 fn my_rust_function(arg: i32) -> i32 {
-    arg * 3
+    arg * 4
 }
 
 
@@ -301,9 +301,9 @@ mod tests {
 
   #[test]
   fn my_rust_function_test () {
-    assert_eq!(my_rust_function(1), 3);
-    assert_eq!(my_rust_function(2), 6);
-    assert_eq!(my_rust_function(3), 9);
+    assert_eq!(my_rust_function(1), 4);
+    assert_eq!(my_rust_function(2), 8);
+    assert_eq!(my_rust_function(3), 12);
   }
 
 }

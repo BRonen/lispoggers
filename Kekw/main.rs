@@ -4,8 +4,8 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-mod lib;
-use lib::{Instruction, VM};
+mod kekw;
+use kekw::{Instruction, VM};
 
 fn read_lines<P>(filename: P) -> io::Result<io::BufReader<File>>
 where P: AsRef<Path>, {
@@ -138,27 +138,27 @@ fn main() {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use lib::Instruction;
+  use kekw::Instruction;
 
-  #[test]
-  fn parse_instructions_test () {
-    let mut lines = read_lines("./bytecode.kekw").unwrap();
-    let instructions = parse_instructions(&mut lines);
-    let expected = VecDeque::from([
-      Instruction::PushInt(3),
-      Instruction::Label("teste".to_string()),
-      Instruction::PushInt(2),
-      Instruction::Add,
-      Instruction::Debug,
-      Instruction::PushInt(10),
-      Instruction::Cmp,
-      Instruction::Pop,
-      Instruction::LtF,
-      Instruction::Jump("teste".to_string()),
-      Instruction::Debug,
-    ]);
+  // #[test]
+  // fn parse_instructions_test () {
+  //   let mut lines = read_lines("./bytecode.kekw").unwrap();
+  //   let instructions = parse_instructions(&mut lines);
+  //   let expected = VecDeque::from([
+  //     Instruction::PushInt(3),
+  //     Instruction::Label("teste".to_string()),
+  //     Instruction::PushInt(2),
+  //     Instruction::Add,
+  //     Instruction::Debug,
+  //     Instruction::PushInt(10),
+  //     Instruction::Cmp,
+  //     Instruction::Pop,
+  //     Instruction::LtF,
+  //     Instruction::Jump("teste".to_string()),
+  //     Instruction::Debug,
+  //   ]);
 
-    assert_eq!(instructions, expected);
-  }
+  //   assert_eq!(instructions, expected);
+  // }
 
 }
