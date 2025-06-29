@@ -132,6 +132,23 @@ freemem: {"hello": Str("world")}
 Process kekw finished
 #+end_example
 
+
+* Lispoggers
+
+#+BEGIN_SRC lpog
+
+(lambda x Type Type x)
+
+#+END_SRC
+
+#+RESULTS:
+: Hello, world!
+: Result from Rust: 8
+: Compiling result:
+: ([Lambda<__lifted_macro_0()>(Var(0)) : Var(Type) => Var(Type)], Var(__lifted_macro_0()))
+:
+: Process lispoggers finished
+
 * Org Babel Extension
 
 #+BEGIN_SRC elisp
@@ -152,3 +169,22 @@ Process kekw finished
 
 #+RESULTS:
 : org-babel-execute:kekw
+
+#+BEGIN_SRC elisp
+(defun org-babel-execute:lpog (body params)
+  (let* ((command '("env" "WASD=WASD" "lake" "exec" "--quiet" "lispoggers"))
+         (output (with-temp-buffer
+                   (let ((proc (make-process
+                                :name "lispoggers"
+                                :buffer (current-buffer)
+                                :command command
+                                :connection-type 'pipe)))
+                     (process-send-string proc body)
+                     (process-send-eof proc)
+                     (while (accept-process-output proc))
+                     (buffer-string)))))
+    output))
+#+END_SRC
+
+#+RESULTS:
+: org-babel-execute:lpog

@@ -1,5 +1,9 @@
 import Lispoggers.Lexer
 
+namespace Lispoggers.Parser
+
+open Lispoggers.Lexer
+
 inductive CST where
   | string     : Location → String → CST
   | identifier : Location → String → CST
@@ -49,10 +53,10 @@ def concreteParse (tokens : List Token) : CST :=
     | _ => CST.error ⟨0, 0, 0, ""⟩ "Multiple top-level expressions"
   | _ => CST.error ⟨0, 0, 0, ""⟩ "Unmatched brackets"
 
-#eval concreteParse (lexer "(a b c)")
-#eval concreteParse (lexer "{a b c}")
-#eval concreteParse (lexer "{{{{a (b c) d}} e}}")
-#eval concreteParse (lexer "(a (b c) {d e})")
+#eval concreteParse (Lexer.lexer "(a b c)")
+#eval concreteParse (Lexer.lexer "{a b c}")
+#eval concreteParse (Lexer.lexer "{{{{a (b c) d}} e}}")
+#eval concreteParse (Lexer.lexer "(a (b c) {d e})")
 
 inductive AST where
   | string     : Location → String → AST
@@ -155,14 +159,18 @@ mutual
     | AST.data loc deps constructors =>
       SyntaxTree.data loc (parse ctx deps) (parseLists ctx constructors)
     | AST.identifier loc name =>
-      match ctx.indexOf? name with
+      match ctx.idxOf? name with
       | some i => SyntaxTree.varBound loc i
       | none => SyntaxTree.varFree loc name
     | AST.apply loc callee params => SyntaxTree.apply loc (parse ctx callee) (parseLists ctx params)
     | AST.error loc err => SyntaxTree.error loc err
 end
 
+end Lispoggers.Parser
+
 namespace Lispoggers.Parser.Test
+
+open Lispoggers.Lexer
 
 def defaultContext : List String := ["a", "b"]
 

@@ -1,3 +1,5 @@
+namespace Lispoggers.Lexer
+
 def isWhitespace (c : Char) : Bool :=
   c == ' ' || c == '\n' || c == '\t' || c == ','
 
@@ -90,3 +92,5 @@ def lexer (input : String) : List Token :=
  (one
   two)
    three)"
+
+end Lispoggers.Lexer

@@ -1,6 +1,11 @@
 import Lispoggers.Lexer
 import Lispoggers.Parser
 
+namespace Lispoggers.Bytecode
+
+open Lispoggers.Lexer
+open Lispoggers.Parser
+
 inductive LiftedTree where
   | string     : Location → String → LiftedTree
   | list       : Location → List LiftedTree → LiftedTree
@@ -11,23 +16,31 @@ inductive LiftedTree where
   | error      : Location → String → LiftedTree
   deriving Repr, Nonempty
 
--- instance : ToString LiftedTree where
---   toString :=
---     let rec ts := λ
---     | LiftedTree.string _ s => s
---     | LiftedTree.map _ elements => s!"Map({elements.map ts})"
---     | LiftedTree.list _ elements => s!"List({elements.map ts})"
---     | LiftedTree.apply _ callee args => s!"Apply({ts callee}, {args.map ts})"
---     | LiftedTree.varBound _ v => s!"Var({v})"
---     | LiftedTree.varFree _ v => s!"Var({v})"
---     | LiftedTree.error _ msg => s!"error: {msg}"
---     ts
+instance : ToString LiftedTree where
+  toString :=
+    let rec ts := λ
+    | LiftedTree.string _ s => s
+    | LiftedTree.map _ elements => s!"Map({elements.map ts})"
+    | LiftedTree.list _ elements => s!"List({elements.map ts})"
+    | LiftedTree.apply _ callee args => s!"Apply({ts callee}, {args.map ts})"
+    | LiftedTree.varBound _ v => s!"Var({v})"
+    | LiftedTree.varFree _ v => s!"Var({v})"
+    | LiftedTree.error _ msg => s!"error: {msg}"
+    ts
 
 inductive TopLevelDefs where
   | lambda : (label : String) → (paramT : LiftedTree) → (returnT : LiftedTree) → (body : LiftedTree) → TopLevelDefs
   | macro  : (label : String) → (paramT : LiftedTree) → (returnT : LiftedTree) → (body : LiftedTree) → TopLevelDefs
   | value  : (label : String) → (value : LiftedTree) → TopLevelDefs
   deriving Repr, Nonempty
+
+instance : ToString TopLevelDefs where
+  toString :=
+    let rec ts := λ
+    | TopLevelDefs.lambda label paramT returnT body => s!"Lambda<{label}>({toString body}) : {toString paramT} => {toString returnT}"
+    | TopLevelDefs.macro label paramT returnT body => s!"macro<{label}>({toString body}) : {toString paramT} => {toString returnT}"
+    | TopLevelDefs.value label value => s!"Value<{label}>({toString value})"
+    ts
 
 mutual
   def lambdasLifting (defs : List TopLevelDefs) : List SyntaxTree → List TopLevelDefs × List LiftedTree
@@ -145,7 +158,6 @@ end
       parse Lispoggers.Parser.Test.defaultContext |>
       lambdaLifting []
 
-
 inductive Instruction where
   | push  : Location → String → Instruction
   | pop   : Location → Instruction
@@ -156,3 +168,5 @@ inductive Instruction where
   | ret   : Location → Instruction
   | dump  : Location → Instruction
   deriving BEq, Repr, Nonempty
+
+end Lispoggers.Bytecode
