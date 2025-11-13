@@ -24,32 +24,40 @@ inductive Token
   | rparen     : Location → Token
   | lcurly     : Location → Token
   | rcurly     : Location → Token
+  | integer    : Location → Int    → Token
   | identifier : Location → String → Token
   | error      : Location → String → Token
   deriving Repr
 
 instance : ToString Token where
   toString := fun
-    | Token.lparen _ => "("
-    | Token.rparen _ => ")"
-    | Token.lcurly _ => "{"
-    | Token.rcurly _ => "}"
-    | Token.identifier _ str => str
-    | Token.error _ msg => s!"error: {msg}"
+    | Token.lparen     _     =>   "("
+    | Token.rparen     _     =>   ")"
+    | Token.lcurly     _     =>   "{"
+    | Token.rcurly     _     =>   "}"
+    | Token.integer    _ int => s!"Int[{int}]"
+    | Token.identifier _ str => s!"Str[{str}]"
+    | Token.error      _ msg => s!"error: {msg}"
 
 structure LexerState where
-  acc : List Char
+  acc    : List Char
   tokens : List Token
-  line : Nat
+  line   : Nat
   column : Nat
   deriving Repr
 
 def makeLocation (state : LexerState) (size := 1) : Location :=
-  { line := state.line, column := state.column - size, size := size, identifier := String.mk state.acc }
+  { line       := state.line
+  , column     := state.column - size
+  , size       := size
+  , identifier := String.mk state.acc }
 
 def flushIdentifier (state : LexerState) : List Token :=
   if state.acc.isEmpty then
     state.tokens
+  else if state.acc.all isDigit then
+    let loc := makeLocation state state.acc.length
+    state.tokens ++ [Token.integer loc (String.toInt! state.acc.asString)]
   else
     let loc := makeLocation state state.acc.length
     state.tokens ++ [Token.identifier loc (String.mk state.acc)]
@@ -64,33 +72,44 @@ def tokenize (state : LexerState) (h : Char) : LexerState :=
   if isWhitespace h then
     let tokens := flushIdentifier state
     let state := updateLocation state h
-    { state with acc := [], tokens := tokens }
-  else if isAlpha h then
+    { state with
+      acc := []
+    , tokens := tokens }
+  else if isAlpha h || isDigit h then
     let state := updateLocation state h
-    { state with acc := state.acc ++ [h] }
+    { state with
+      acc := state.acc ++ [h] }
   else
     let tokens := flushIdentifier state
     let loc := makeLocation state
     let token := match h with
-      | '(' => Token.lparen loc
-      | ')' => Token.rparen loc
-      | '{' => Token.lcurly loc
-      | '}' => Token.rcurly loc
-      | _ => Token.error loc s!"invalid character: {h}"
+    | '(' => Token.lparen { loc with identifier := "(" }
+    | ')' => Token.rparen { loc with identifier := ")" }
+    | '{' => Token.lcurly { loc with identifier := "{" }
+    | '}' => Token.rcurly { loc with identifier := "}" }
+    | _ => Token.error loc s!"invalid character: {h}"
     let state := updateLocation state h
-    { state with acc := [], tokens := tokens ++ [token] }
+    { state with
+      acc := []
+    , tokens := tokens ++ [token] }
 
 def lexer (input : String) : List Token :=
-  let initialState : LexerState := {
-    acc := [], tokens := [], line := 1, column := 0
-  }
+  let initialState : LexerState :=
+  { acc := []
+  , tokens := []
+  , line := 1
+  , column := 0 }
   let finalState := input.toList.foldl tokenize initialState
   flushIdentifier finalState
 
-#eval lexer "
-(add
- (one
-  two)
-   three)"
-
 end Lispoggers.Lexer
+namespace Lispoggers.Lexer.Test
+
+#eval lexer "
+(add222
+ 222
+ {one
+  two}
+ three)"
+
+end Lispoggers.Lexer.Test
