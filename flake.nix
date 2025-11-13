@@ -10,7 +10,7 @@
       in {
         defaultPackage = pkgs.mkShell {
           name = "lispoggers";
-          buildInputs = with pkgs;[ lean4 rustc cargo ];
+          buildInputs = with pkgs;[ elan rustc cargo ];
 
           shellHook = "cargo --version && rustc --version && lake --version && lean --version";
         };
