@@ -5,16 +5,17 @@ namespace Lispoggers.Parser
 open Lispoggers.Lexer
 
 inductive CST where
-  | string     : Location → String → CST
-  | identifier : Location → String → CST
-  | list       : Location → List CST → CST
-  | map        : Location → List CST → CST
-  | error      : Location → String → CST
-  deriving Repr
+| string     : Location → String   → CST
+| integer    : Location → Int      → CST
+| identifier : Location → String   → CST
+| list       : Location → List CST → CST
+| map        : Location → List CST → CST
+| error      : Location → String   → CST
+deriving Repr
 
 inductive FrameKind
-  | List
-  | Map
+| List
+| Map
 
 structure Frame where
   elements : List CST
@@ -24,25 +25,35 @@ structure Frame where
 def concreteParse (tokens : List Token) : CST :=
   let rec step (stack : List Frame) (token : Token) : List Frame :=
     match token, stack with
+    | Token.integer loc int, frame :: rest =>
+      { frame with
+        elements := CST.integer loc int :: frame.elements } :: rest
     | Token.identifier loc str, frame :: rest =>
-      { frame with elements := CST.identifier loc str :: frame.elements } :: rest
+      { frame with
+        elements := CST.identifier loc str :: frame.elements } :: rest
     | Token.lparen loc, stack =>
       ⟨[], loc, FrameKind.List⟩ :: stack
     | Token.lcurly loc, stack =>
       ⟨[], loc, FrameKind.Map⟩ :: stack
     | Token.rparen _, frame :: parent :: rest =>
       let cst := match frame.kind with
-        | FrameKind.List => CST.list frame.loc (frame.elements.reverse)
-        | FrameKind.Map => CST.error frame.loc "Mismatched brackets"
-      { parent with elements := cst :: parent.elements } :: rest
+      | FrameKind.List => CST.list frame.loc frame.elements.reverse
+      | FrameKind.Map => CST.error frame.loc "Mismatched brackets"
+      { parent with
+        elements := cst :: parent.elements } :: rest
     | Token.rcurly _, frame :: parent :: rest =>
       let cst := match frame.kind with
-        | FrameKind.Map => CST.map frame.loc (frame.elements.reverse)
-        | FrameKind.List => CST.error frame.loc "Mismatched brackets"
-      { parent with elements := cst :: parent.elements } :: rest
+      | FrameKind.Map => CST.map frame.loc frame.elements.reverse
+      | FrameKind.List => CST.error frame.loc "Mismatched brackets"
+      { parent with
+        elements := cst :: parent.elements } :: rest
     | Token.error loc msg, frame :: rest =>
-      { frame with elements := CST.error loc msg :: frame.elements } :: rest
-    | _, _ => [⟨[CST.error ⟨0, 0, 0, ""⟩ "Parse error"], ⟨0, 0, 0, ""⟩, FrameKind.List⟩]
+      { frame with
+        elements := CST.error loc msg :: frame.elements } :: rest
+    | _, _ =>
+      [⟨ [CST.error ⟨0, 0, 0, ""⟩ "Parse error"]
+       , ⟨0, 0, 0, ""⟩
+       , FrameKind.List ⟩]
 
   let initial := [⟨[], ⟨0, 0, 0, ""⟩, FrameKind.List⟩]
   match tokens.foldl step initial with
@@ -60,6 +71,7 @@ def concreteParse (tokens : List Token) : CST :=
 
 inductive AST where
   | string     : Location → String → AST
+  | integer    : Location → Int → AST
   | list       : Location → List AST → AST
   | map        : Location → List AST → AST
   | definition : Location → (label : AST) → (value : AST) → AST
@@ -95,6 +107,7 @@ mutual
 
   def parseNode : CST → AST
     | CST.string loc s => AST.string loc s
+    | CST.integer loc i => AST.integer loc i
     | CST.identifier loc str => AST.identifier loc str
     | CST.list loc elements => parseList loc elements
     | CST.map loc elements => parseMap loc elements
@@ -108,66 +121,67 @@ def abstractParse : CST → AST := parseNode
 #eval abstractParse (concreteParse (lexer "{a b c}"))
 #eval abstractParse (concreteParse (lexer "(f x y)"))
 
-inductive SyntaxTree where
-  | string     : Location → String → SyntaxTree
-  | list       : Location → List SyntaxTree → SyntaxTree
-  | map        : Location → List SyntaxTree → SyntaxTree
-  | lambda     : Location → (paramT : SyntaxTree) → (returnT : SyntaxTree) → (body : SyntaxTree) → SyntaxTree
-  | macro      : Location → (paramT : SyntaxTree) → (returnT : SyntaxTree) → (body : SyntaxTree) → SyntaxTree
-  | data       : Location → (deps : SyntaxTree) → (constructors : List SyntaxTree) → SyntaxTree
-  | apply      : Location → (callee : SyntaxTree) → (args : List SyntaxTree) → SyntaxTree
-  | definition : Location → (label : String) → (value : SyntaxTree) → SyntaxTree
-  | varBound   : Location → (index : Nat) → SyntaxTree
-  | varFree    : Location → (label : String) → SyntaxTree
-  | error      : Location → String → SyntaxTree
+inductive AlphaTree where
+  | string     : Location → String → AlphaTree
+  | integer    : Location → Int → AlphaTree
+  | list       : Location → List AlphaTree → AlphaTree
+  | map        : Location → List AlphaTree → AlphaTree
+  | lambda     : Location → (paramT : AlphaTree) → (returnT : AlphaTree) → (body : AlphaTree) → AlphaTree
+  | macro      : Location → (paramT : AlphaTree) → (returnT : AlphaTree) → (body : AlphaTree) → AlphaTree
+  | data       : Location → (deps : AlphaTree) → (constructors : List AlphaTree) → AlphaTree
+  | apply      : Location → (callee : AlphaTree) → (args : List AlphaTree) → AlphaTree
+  | definition : Location → (label : String) → (value : AlphaTree) → AlphaTree
+  | varBound   : Location → (index : Nat) → AlphaTree
+  | varFree    : Location → (label : String) → AlphaTree
+  | error      : Location → String → AlphaTree
   deriving Repr, Nonempty
 
 mutual
-  def parseLists (ctx : List String) : List AST → List SyntaxTree
+  def alphaLists (ctx : List String) : List AST → List AlphaTree
     | [] => []
-    | x :: xs => parse ctx x :: parseLists ctx xs
+    | x :: xs => alpha ctx x :: alphaLists ctx xs
 
-  def parse (ctx : List String) : AST → SyntaxTree
-    | AST.string loc s => SyntaxTree.string loc s
+  def alpha (ctx : List String) : AST → AlphaTree
+    | AST.string loc s => AlphaTree.string loc s
+    | AST.integer loc i => AlphaTree.integer loc i
     | AST.definition loc label body =>
-      let label := parse ctx label
+      let label := alpha ctx label
       match label with
-      | SyntaxTree.varFree loc label =>
-        let body := parse ctx body
-        SyntaxTree.definition loc label body
-      | _ => SyntaxTree.error loc "Trying to create a definition with a invalid node as label"
-    | AST.list loc elements => SyntaxTree.list loc (parseLists ctx elements)
-    | AST.map loc elements => SyntaxTree.map loc (parseLists ctx elements)
+      | AlphaTree.varFree loc label =>
+        let body := alpha ctx body
+        AlphaTree.definition loc label body
+      | _ => AlphaTree.error loc "Trying to create a definition with a invalid node as label"
+    | AST.list loc elements => AlphaTree.list loc (alphaLists ctx elements)
+    | AST.map loc elements => AlphaTree.map loc (alphaLists ctx elements)
     | AST.lambda loc param paramT returnT body =>
       match param with
       | AST.identifier loc param =>
-        let paramT := parse ctx paramT
+        let paramT := alpha ctx paramT
         let ctx := ctx.cons param
-        let returnT := parse ctx returnT
-        let body := parse ctx body
-        SyntaxTree.lambda loc paramT returnT body
-      | _ => SyntaxTree.error loc "Using anything other than an identifier as parameter label is not supported"
+        let returnT := alpha ctx returnT
+        let body := alpha ctx body
+        AlphaTree.lambda loc paramT returnT body
+      | _ => AlphaTree.error loc "Using anything other than an identifier as parameter label is not supported"
     | AST.macro loc param paramT returnT body =>
       match param with
       | AST.identifier loc param =>
-        let paramT := parse ctx paramT
+        let paramT := alpha ctx paramT
         let ctx := ctx.cons param
-        let returnT := parse ctx returnT
-        let body := parse ctx body
-        SyntaxTree.macro loc paramT returnT body
-      | _ => SyntaxTree.error loc "Using anything other than an identifier as parameter label is not supported"
+        let returnT := alpha ctx returnT
+        let body := alpha ctx body
+        AlphaTree.macro loc paramT returnT body
+      | _ => AlphaTree.error loc "Using anything other than an identifier as parameter label is not supported"
     | AST.data loc deps constructors =>
-      SyntaxTree.data loc (parse ctx deps) (parseLists ctx constructors)
+      AlphaTree.data loc (alpha ctx deps) (alphaLists ctx constructors)
     | AST.identifier loc name =>
       match ctx.idxOf? name with
-      | some i => SyntaxTree.varBound loc i
-      | none => SyntaxTree.varFree loc name
-    | AST.apply loc callee params => SyntaxTree.apply loc (parse ctx callee) (parseLists ctx params)
-    | AST.error loc err => SyntaxTree.error loc err
+      | some i => AlphaTree.varBound loc i
+      | none => AlphaTree.varFree loc name
+    | AST.apply loc callee params => AlphaTree.apply loc (alpha ctx callee) (alphaLists ctx params)
+    | AST.error loc err => AlphaTree.error loc err
 end
 
 end Lispoggers.Parser
-
 namespace Lispoggers.Parser.Test
 
 open Lispoggers.Lexer
@@ -178,50 +192,51 @@ def defaultContext : List String := ["a", "b"]
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext
-#eval "{a b b}" |> lexer
-      |> concreteParse
-      |> abstractParse
-      |> parse defaultContext
+      alpha defaultContext
+#eval "{a b b}" |>
+      lexer |>
+      concreteParse |>
+      abstractParse |>
+      alpha defaultContext
 #eval "(a b b a)" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext
+      alpha defaultContext
 #eval "(list a a b b)" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext
+      alpha defaultContext
 #eval "(data {a Type} (list true) (list false))" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext
+      alpha defaultContext
 #eval "((lambda x Type Type (x x)) (lambda x Type Type (x x)))" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext
+      alpha defaultContext
 #eval "(lambda a Type Type (lambda b Type Type (lambda c Type Type (a b c))))" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext
+      alpha defaultContext
 #eval "(lambda Bool Type Type (lambda x Bool Bool x))" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext
+      alpha defaultContext
 #eval "(lambda x Type Type x)" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext
+      alpha defaultContext
 #eval "(macro y Type Type (macro x y y x))" |>
       lexer |>
       concreteParse |>
       abstractParse |>
-      parse defaultContext
+      alpha defaultContext
 
 end Lispoggers.Parser.Test
