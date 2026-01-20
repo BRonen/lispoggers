@@ -1,0 +1,7 @@
+(macro x
+  Int Int
+  (add x x))
+
+(lambda x
+  Int Int
+  (add x x))
